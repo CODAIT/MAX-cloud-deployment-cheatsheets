@@ -1,8 +1,6 @@
 # Deploy a MAX model-serving microservice on Google Cloud Platform
 
-This document describes how to deploy the MAX model-serving microservices on Google Cloud Platform's [Kubernetes Engine](https://cloud.google.com/kubernetes-engine/).
-
-> Note: The Kubernetes Engine service is not free.
+This document describes how to deploy deep learning models from the [Model Asset Exchange](https://developer.ibm.com/exchanges/models/) as model-serving microservices on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/).
 
 ### Prerequisites
 
