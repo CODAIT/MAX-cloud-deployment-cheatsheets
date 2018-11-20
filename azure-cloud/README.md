@@ -1,76 +1,88 @@
 # Deploy a MAX model-serving microservice on Azure Kubernetes Service
 
-This document describes how to deploy the MAX model-serving microservices on [Azure Kubernetes Service](https://azure.microsoft.com/en-us/services/kubernetes-service/) (AKS).
+This tutorial describes how to deploy deep learning model-serving microservices from the [Model Asset Exchange](https://developer.ibm.com/exchanges/models/) on [Azure Kubernetes Service](https://azure.microsoft.com/en-us/services/kubernetes-service/) (AKS).
+
+> Looking for deployment instructions on other clouds? [This way please](/).
+
+The tutorial assumes some familiarity with, Docker, AKS and the Azure CLI. If you prefer you can use the Azure Portal to complete the tasks outlined in this document. Refer to the [Azure AKS documentation](https://docs.microsoft.com/en-us/azure/aks/) for details.
+
+For illustrative purposes the instructions deploy the [Object Detector Model](https://developer.ibm.com/exchanges/models/all/max-object-detector/). Replace the referenced model name as necessary.
 
 ### Prerequisites
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop).
 2. Install the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest).
-3. Open a terminal window. 
-   > Run commands prefixed with `$` in this terminal window.
+3. Install the [Kubernetes CLI](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-install-cli).
+4. Open a terminal window.
 
-### Publish the model container image in the Container Registry
+Follow the instructions listed below and execute the commands prefixed with `$` in this terminal window. 
 
-Google Cloud Platform maintains a private [Docker repository](https://cloud.google.com/container-registry/), to which you have to upload the MAX model Docker container image. If you are not familiar with the Container Registry or require more detailed instructions, refer to the [How-to Guides](https://cloud.google.com/container-registry/docs/how-to).
+### Upload the deep learning model container image to a Container Registry
 
-#### Create a Container Registry
+In Azure private [Container Registries](https://docs.microsoft.com/en-us/azure/container-registry/) are used to store and manage containers that you want to run in AKS.
 
+#### Deploy a Container Registry
 
-X. Create a resource group if none is defined yet.
+If you have have already access to a Container Registry take note of its name, log in and skip this section.
 
-  ```
-  $ az group create --name default --location westus
-  ```
+1. [Create a resource group](https://docs.microsoft.com/en-us/cli/azure/group?view=azure-cli-latest#az-group-create) if none is defined yet, choosing an appropriate name and location.
 
-X. Create a Container Registry.
+   ```
+   $ az group create --name default --location westus
+   ```
 
-  ```
-  $ az acr create --resource-group default --name maxdeployments --sku Basic
-  ```
+2. [Create a Container Registry](https://docs.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-create) in this resource group.
 
-X.Log in to the Container Registry
+   ```
+   $ az acr create --resource-group default --name maxregistry --sku Basic
+   ```
 
-  ```
-  $ az acr login --name maxdeployments
-  ```
+3. [Log in](https://docs.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-login) to this Container Registry.
 
-1. Clone the desired MAX model repository and build the Docker image using the [`docker build`](https://docs.docker.com/engine/reference/commandline/build/) command. 
+   ```
+   $ az acr login --name maxregistry
+   ```
+
+#### Upload to the Container Registry 
+
+1. Clone the desired MAX model repository and build the Docker image using [`docker build`](https://docs.docker.com/engine/reference/commandline/build/). 
 
     ```
     $ git clone https://github.com/IBM/MAX-Object-Detector.git
     $ cd MAX-Object-Detector
     $ docker build -t max-object-detector .
     ```
-
-   > The example instructions use the MAX-Object-Detector model for illustrative purposes. 
-
+    > To test the image locally run `docker run -it -p 5000:5000 max-object-detector`
 
 2. Tag the Docker image for uploading.
 
-   Tag the Docker image using the [`docker tag`](https://docs.docker.com/engine/reference/commandline/tag/) command, following the `[REGISTRY-HOSTNAME]/[PROJECT-ID]/[IMAGE]` naming convention as described [here](https://cloud.google.com/container-registry/docs/pushing-and-pulling).
+   [Query the login server address of the Container Registry](https://docs.microsoft.com/en-us/cli/azure/acr?view=azure-cli-latest#az-acr-list) and tag the Docker image using [`docker tag`](https://docs.docker.com/engine/reference/commandline/tag/) with that address and the image name.
  
-   The command shown below tags the `max-object-detector` Docker image using REGISTRY-HOSTNAME `us.gcr.io` (US-based storage), the previsouly created `max-deployments` project id, and image name `max-object-detector`. 
-
    ```
-   $ docker tag max-object-detector maxdeployments.azurecr.io/max-object-detector
+   $ az acr list --resource-group default --query "[].{acrLoginServer:loginServer}" --output table
+    AcrLoginServer
+    ------------------------
+    maxregistry.azurecr.io
+
+   $ docker tag max-object-detector maxregistry.azurecr.io/max-object-detector
 
    $ docker images
-    REPOSITORY                                      TAG                 IMAGE ID        ...    
-    max-object-detector                             latest              0ba72cc8c62b    ...    
-    maxdeployments.azurecr.io/max-object-detector   latest  
+    REPOSITORY                                      TAG                 ...    
+    max-object-detector                             latest              ...    
+    maxregistry.azurecr.io/max-object-detector      latest              ...
    ```
 
 3. Push the tagged Docker image to the Container Registry.
 
-   Push the tagged image to the Container Registry using the [`Docker push`](https://docs.docker.com/engine/reference/commandline/push/) command.
+   Push the tagged image to the Container Registry using [`docker push`](https://docs.docker.com/engine/reference/commandline/push/) and [list the registry content](https://docs.microsoft.com/en-us/cli/azure/acr/repository?view=azure-cli-latest#az-acr-repository-list).
  
    ```
-   $ docker push maxdeployments.azurecr.io/max-object-detector
-    The push refers to repository [maxdeployments.azurecr.io/max-object-detector]
+   $ docker push maxregistry.azurecr.io/max-object-detector
+    The push refers to repository [maxregistry.azurecr.io/max-object-detector]
     d04398a13d59: Pushed 
     ...
 
-   $ az acr repository list --name maxdeployments --output table
+   $ az acr repository list --name maxregistry --output table
     Result
     -------------------
     max-object-detector
@@ -78,30 +90,39 @@ X.Log in to the Container Registry
 
 You can now deploy the image on the Azure Kubernetes Service.
 
+---
 ### Deploy the container on Azure Kubernetes Service
 
 
-#### Create a Kubernetes cluster
+#### Deploy a Kubernetes cluster
 
-If you already have access to a Kubernetes cluster skip this section. For detailed information about how to create an Azure Kubernetes Service cluster refer to the [tutorial](https://docs.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster).
+1. Deploy a Kubernetes cluster. 
 
-1. Create a Kubernetes cluster. 
-
-   Many MAX model-serving microservices require at a minimim 1 CPU and 2GB of RAM.
-   > Note that some MAX model-serving microservices require additional resources. Check the model documentation for details.
+   Many MAX model-serving microservices require at a minimim 1 CPU and 2GB of RAM. Use the model documentation to determine a suitable cluster node size.
+   The example below deploys a cluster named `maxCluster` with a single _Standard_DS_-sized (1vCPU, 3.5GB RAM) node, granting access to the previously created Container Registry. Refer to [this tutorial](https://docs.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster) for more information about the listed commands. 
 
     ```
     $ az ad sp create-for-rbac --skip-assignment
-    $ az acr show --resource-group default --name maxdeployments --query "id" --output tsv
+     {
+      "appId": "<appId>",
+      "displayName": "...",
+      "name": "...",
+      "password": "<password>",
+      "tenant": "..."
+     }
 
-    $ az role assignment create --assignee 7adc2f2f-be0a-4819-bebc-2a014f1cd6af --scope /subscriptions/70fa6736-1c48-4cbc-af70-b9beebe42b40/resourceGroups/default/providers/Microsoft.ContainerRegistry/registries/maxdeployments --role Reader
+    $ az acr show --resource-group default --name maxregistry --query "id" --output tsv
+     <acrId>
+
+    $ az role assignment create --assignee <appId> --scope <acrId> --role Reader
+     ...
 
     $ az aks create \
     --resource-group default \
     --name maxCluster \
     --node-count 1 \
-    --service-principal 7adc2f2f-be0a-4819-bebc-2a014f1cd6af \
-    --client-secret a51d3ac3-5085-4535-a702-1b12b939cedf \
+    --service-principal <appId> \
+    --client-secret <password> \
     --generate-ssh-keys \
     --node-vm-size Standard_DS1
      ...
@@ -111,49 +132,49 @@ If you already have access to a Kubernetes cluster skip this section. For detail
      gke-max-cluster-...             us-west1-a  g1-small                   1...2        3...0        RUNNING
     ```
 
-2. Connect to the Kubernetes cluster.
-
-   You use `kubectl` to connect to the Kubernetes cluster. 
-   
-   > If necessary install it by running `az aks install-cli` before continuing.
+2. Get access credentials for this Kubernetes cluster using [az aks get-credentials](https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-get-credentials).
 
    ```
-   $ az aks get-credentials --resource-group default --name maxCluster
+   $ az aks get-credentials --name maxCluster --resource-group default
    ```
 
-3. List cluster nodes.
+3. List cluster nodes using [`kubectl get nodes`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get) to verify that you can access the cluster using the Kubernetes CLI.
    ```
    $ kubectl get nodes
     NAME                STATUS    ROLES     AGE       VERSION
     aks-nodepool...-0   Ready     agent     14m       v1.9.11
    ```
 
-#### Deploy the container and expose it as a service
+You can now deploy the model-serving microservice using the image from the Containter Registry and expose it as a service.
+
+#### Deploy the container image and expose it as a service
 
 
-1. Create a deployment from the container image on the Container Registry. In this example we are creating only a single pod. (The node size in your cluster limits how many replicas you can run at any point in time.)
+1. Create a deployment named `max-object-detector` from the container image using [`kubectl run`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run). 
 
    ```
-   $ kubectl run max-object-detector --image=maxdeployments.azurecr.io/max-object-detector --replicas=1
+   $ kubectl run max-object-detector --image=maxregistry.azurecr.io/max-object-detector --replicas=1
     deployment.apps "max-object-detector" created
    ```
 
-3. Wait until the desired number of pods was started.
+   > Keep in mind that the cluster's node size effectively limits how many replicas you can run at any point in time.
+
+2. Wait until the desired number of replicas was started.
 
    ```
-   $ kubectl get pods
+   $ kubectl get pods --watch
     NAME                                READY     STATUS        RESTARTS   AGE
     max-object-detector-...h            1/1       Running       0          4m
    ```
 
-3. Expose the workload as a service.
+3. Expose the deployment as a public service using [`kubectl expose deployment`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#expose). Choose a service name, map the container's port (container images are configured to use 5000 by default) to the desired service port (e.g. 80) and select a suitable [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).   
 
    ```
-   $ kubectl expose deployment max-object-detector --port=80 --target-port=5000 --name=max-model-service --type=LoadBalancer --load-balancer-ip=''
+   $ kubectl expose deployment max-object-detector --port=80 --target-port=5000 --name=max-model-service --type=LoadBalancer --load-balancer-ip=''curl 
     ...
    ```
 
-4. Retrieve the service's external IP address.
+4. Retrieve the microservice's external IP address using [`kubectl get service`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get).
 
    Service creation can take a couple minutes. Wait until an external IP address is displayed for the `max-model-service`.
 
@@ -165,7 +186,7 @@ If you already have access to a Kubernetes cluster skip this section. For detail
     max-model-service   LoadBalancer   1...5          1...2         80:30997/TCP   1m
    ```
 
-5. Verify that you can access the model-serving microservice using the displayed external IP address.
+5. Verify that you can access the model-serving microservice using the displayed external IP address (e.g. 1...2) and port number (e.g. 80).
 
    ```
    $ curl http://1...2:80/model/metadata
@@ -177,4 +198,6 @@ If you already have access to a Kubernetes cluster skip this section. For detail
 
 6. Explore the service endpoints.
 
-   Open `http://1...2:80/` in a browser window to explore the service endpoints using the Swagger specification.
+   Open `http://1...2:80/` in your favorite web browser to explore the service endpoints using the Swagger specification.
+
+   ![model-serving microservice endpoints](images/swagger.png)
