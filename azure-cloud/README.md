@@ -2,7 +2,7 @@
 
 This tutorial describes how to deploy deep learning model-serving microservices from the [Model Asset Exchange](https://developer.ibm.com/exchanges/models/) on [Azure Kubernetes Service](https://azure.microsoft.com/en-us/services/kubernetes-service/) (AKS).
 
-> Looking for deployment instructions on other clouds? [This way please](/).
+> Looking for deployment instructions on other clouds? [This way please](/README.md).
 
 The tutorial assumes some familiarity with, Docker, AKS and the Azure CLI. If you prefer you can use the Azure Portal to complete the tasks outlined in this document. Refer to the [Azure AKS documentation](https://docs.microsoft.com/en-us/azure/aks/) for details.
 
