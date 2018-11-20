@@ -4,7 +4,7 @@ This tutorial describes how to deploy deep learning model-serving microservices 
 
 > Looking for deployment instructions on other clouds? [This way please](/README.md).
 
-The tutorial assumes some familiarity with, Docker, AKS and the Azure CLI. If you prefer you can use the Azure Portal to complete the tasks outlined in this document. Refer to the [Azure AKS documentation](https://docs.microsoft.com/en-us/azure/aks/) for details.
+The tutorial assumes some familiarity with Docker, AKS and the Azure CLI. If you prefer you can use the Azure Portal to complete the tasks outlined in this document. Refer to the [Azure AKS documentation](https://docs.microsoft.com/en-us/azure/aks/) for details.
 
 For illustrative purposes the instructions deploy the [Object Detector Model](https://developer.ibm.com/exchanges/models/all/max-object-detector/). Replace the referenced model name as necessary.
 
