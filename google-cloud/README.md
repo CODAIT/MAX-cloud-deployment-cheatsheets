@@ -134,3 +134,5 @@ If you already have access to a Google Kubernetes cluster skip this section.
 6. Explore the service endpoints.
 
    Open `http://3...0:80/` in a browser window to explore the service endpoints using the Swagger specification.
+
+   ![model-serving microservice endpoints](images/swagger.png)
