@@ -1,6 +1,10 @@
-# Deploy a MAX model-serving microservice on Google Cloud Platform
+# Deploy a MAX model-serving microservice on Google Kubernetes Engine
 
-This document describes how to deploy deep learning models from the [Model Asset Exchange](https://developer.ibm.com/exchanges/models/) as model-serving microservices on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/).
+This tutorial describes how to deploy deep learning model-serving microservices from the [Model Asset Exchange](https://developer.ibm.com/exchanges/models/) on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine/).
+
+> Looking for deployment instructions on other clouds? [This way please](/README.md).
+
+The tutorial assumes some familiarity with Docker, Google Kubernetes Engine and the Google Cloud SDK.
 
 ### Prerequisites
 
