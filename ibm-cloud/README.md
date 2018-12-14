@@ -26,13 +26,13 @@ For illustrative purposes the instructions deploy the [Object Detector Model](ht
 Many MAX model-serving microservices require at a minimim 1 CPU and 2GB of RAM. Use the model documentation to determine a suitable cluster node size.
 If you already have access to an appropriately sized cluster skip this section.
 
-1. [Create a Kubernetes cluster](https://console.bluemix.net/docs/containers/cs_cli_reference.html#cs_cluster_create) named `max-cluster` with a single (2vCPU, 4GB RAM) node, which is free.   
+1. [Create a free Kubernetes cluster](https://console.bluemix.net/docs/containers/cs_cli_reference.html#cs_cluster_create) with a single (2vCPU, 4GB RAM) node, which is free. In this example the cluster is named `max-cluster`.   
 
    ```
    $ ibmcloud ks cluster-create --name max-cluster
    ```
 
-   > You can create only 1 freee cluster in your IBM Cloud organization. Free clusters are deleted after 30 days. 
+   > You can create only 1 freee cluster in your IBM Cloud organization. Free clusters are deleted after 30 days. Some service restrictions apply. 
 
 2. Check the cluster status and wait until deployment has completed.
 
@@ -88,15 +88,20 @@ In IBM Cloud Kubernetes service you can use a public container registry (such as
     ```
     > To test the image locally run `docker run -it -p 5000:5000 max-object-detector`
 
-2. Tag the Docker image.
+2. [`docker tag`](https://docs.docker.com/engine/reference/commandline/tag/) the image using the following scheme: `registry.<region>.bluemix.net/<namespace>/<image>:<tag>`. Replace [`<region>`](https://console.bluemix.net/docs/services/Registry/registry_overview.html#registry_regions), `<namespace>`, `<image>`, and `<tag>` as appropriate. 
 
    ```
    $ docker tag max-object-detector registry.ng.bluemix.net/max-deployments/max-object-detector
+
+   $ docker images
+    REPOSITORY                                                    TAG      ...        
+    max-object-detector                                           latest   ...
+    registry.ng.bluemix.net/max-deployments/max-object-detector   latest   ...
    ```
 
 2. Push the tagged Docker image to the Container Registry.
 
-   Push the tagged image to the Container Registry using [`docker push`](https://docs.docker.com/engine/reference/commandline/push/) and [list the registry content]().
+   [Log in to the Container Registry](https://console.bluemix.net/docs/services/Registry/registry_cli.html#bx_cr_login), [`docker push`](https://docs.docker.com/engine/reference/commandline/push/) the tagged image to the Container Registry, and [list the registry content](https://console.bluemix.net/docs/services/Registry/registry_cli.html#bx_cr_image_list).
  
    ```
    $ ibmcloud cr login
@@ -111,11 +116,7 @@ In IBM Cloud Kubernetes service you can use a public container registry (such as
     ...
    ``` 
 
-You've created a namespace in the IBM Cloud Container Registry and pushed the model-serving Docker image. 
-
----
-
-You can now deploy the model-serving microservice using the image from the Containter Registry and expose it as a service on IBM Kubernetes Service.
+You've created a namespace in the IBM Cloud Container Registry and pushed the model-serving Docker image. You can now deploy the model-serving microservice using the image from the Containter Registry and expose it as a service on IBM Kubernetes Service.
 
 #### Deploy the container image and expose it as a service
 
@@ -129,7 +130,7 @@ You can now deploy the model-serving microservice using the image from the Conta
 
    > Keep in mind that the cluster's node size effectively limits how many replicas you can run at any point in time.
 
-2. Wait until the desired number of replicas was started.
+2. Wait until the desired number of replicas was started. 
 
    ```
    $ kubectl get pods --watch
